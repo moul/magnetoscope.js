@@ -2,11 +2,22 @@
 (function() {
 
   (function($, window, console) {
-    var document;
+    var Magnetoscope, document;
     document = window.document;
-    return $(document).ready(function() {
-      return console.log('Magnetoscope !');
-    });
+    Magnetoscope = (function() {
+
+      function Magnetoscope(options) {
+        this.options = options != null ? options : {};
+        this.socket = io.connect();
+        this.socket.on('connect', function() {
+          return console.log('onConnect');
+        });
+      }
+
+      return Magnetoscope;
+
+    })();
+    return window.Magnetoscope = Magnetoscope;
   })(jQuery, window, console);
 
 }).call(this);
