@@ -54,8 +54,12 @@ class Magnetoscope
                 # TODO: find good name
                 @app.get "#{base_path}/push", (req, res, next) =>
                         data = req.query.data
-                        data = qs.unescape data
-                        data = JSON.parse data
+                        try
+                                data = qs.unescape data
+                        catch e
+                        try
+                                data = JSON.parse data
+                        catch e
                         console.log data
                         event =
                                 data: data
