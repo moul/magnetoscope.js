@@ -21,6 +21,8 @@
 
         this.onMagnetoscopeSetup = __bind(this.onMagnetoscopeSetup, this);
 
+        this.options.debug = this.options.debug || false;
+        this.options.verbose = this.options.verbose || false;
         this.events = {};
         this.socket = io.connect();
         this.socket.on('connect', this.onSocketConnect);
@@ -30,7 +32,9 @@
       Magnetoscope.prototype.onMagnetoscopeSetup = function(settings) {
         var callback, eventName, eventPath, _ref, _results;
         this.settings = settings;
-        console.debug('onMagnetsocopeSetup', this.settings);
+        if (this.options.debug) {
+          console.debug('onMagnetsocopeSetup', this.settings);
+        }
         _ref = this.settings.events;
         _results = [];
         for (eventName in _ref) {
@@ -47,12 +51,14 @@
       };
 
       Magnetoscope.prototype.on_newEvent = function(event) {
-        return console.debug('newEvent', event);
+        return this.emit(event.type, event);
       };
 
       Magnetoscope.prototype.on_newEvents = function(events) {
         var event, _i, _len, _results;
-        console.debug('newEvents', events);
+        if (this.options.debug) {
+          console.debug('newEvents', events);
+        }
         _results = [];
         for (_i = 0, _len = events.length; _i < _len; _i++) {
           event = events[_i];
@@ -62,11 +68,15 @@
       };
 
       Magnetoscope.prototype.onSocketConnect = function() {
-        return console.debug('onSocketConnect');
+        if (this.options.debug) {
+          return console.debug('onSocketConnect');
+        }
       };
 
       Magnetoscope.prototype.on = function(name, fn) {
-        console.info("Registering magnetoscope callback for '" + name + "'");
+        if (this.options.verbose) {
+          console.info("Registering magnetoscope callback for '" + name + "'");
+        }
         if (!(this.events[name] != null)) {
           return this.events[name] = [fn];
         } else {
@@ -75,12 +85,19 @@
       };
 
       Magnetoscope.prototype.emit = function(name) {
-        var args, handler, _i, _len, _ref;
-        console.info("Emitting magnetoscope event " + name);
+        var args, handler, _i, _j, _len, _len1, _ref, _ref1;
+        if (this.options.verbose) {
+          console.info("Emitting magnetoscope event " + name);
+        }
         args = [].slice.call(arguments, 1);
         _ref = this.events[name];
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           handler = _ref[_i];
+          handler.apply(this, args);
+        }
+        _ref1 = this.events['any'];
+        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
+          handler = _ref1[_j];
           handler.apply(this, args);
         }
         return true;
