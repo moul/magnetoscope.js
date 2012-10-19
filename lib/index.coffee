@@ -14,10 +14,10 @@ class Magnetoscope
                 @app = @options.app || null
                 @io = @options.io || null
                 @schema = @options.schema || null
-                @options.eventPrefix = @options.eventPrefix || 'magnetoscope::'
+                @options.prefix = @options.prefix || 'magnetoscope::'
                 @options.events = @options.events || {}
-                for eventName in ['newEvent', 'newEvents', 'getLast', 'getStats', 'push']
-                        @options.events[eventName] = "#{@options.eventPrefix}#{eventName}"
+                for eventName in ['newEvent', 'newEvents', 'getLast', 'setLast', 'getStats', 'setStats', 'push']
+                        @options.events[eventName] = "#{@options.prefix}#{eventName}"
                 @options.port = @options.port || null
                 @options.base_path = @options.base_path || '/magnetoscope'
                 @options.latency = 3000 #ms
@@ -56,17 +56,40 @@ class Magnetoscope
                         @io.sockets.on 'connection', (socket) =>
                                 console.log 'NEW SOCKET'
                                 socket.emit 'magnetoscope::setup', @options.clientSettings
-                                socket.on @options.events['getLast'], (data) ->
-                                        console.log 'on GETLAST'
-                                        console.log data
-                                socket.on @options.events['getStats'], (data) ->
-                                        console.log 'on GETSTATS'
-                                        console.log data
-                                socket.on @options.events['push'], (data) ->
+                                socket.on @options.events['getLast'], (options = {}) =>
+                                        @getLast options, (err, events) =>
+                                                for event in events.reverse()
+                                                        socket.emit @options.events['newEvent'], event
+                                                socket.emit @options.events['setLast'],
+                                                        err: err
+                                                        data: data
+                                socket.on @options.events['getStats'], (data) =>
+                                        options = {}
+                                        @getStats options, (err, data) =>
+                                                socket.emit @options.events['setStats'],
+                                                        err: err
+                                                        data: data
+                                socket.on @options.events['push'], (data) =>
                                         console.log 'on PUSH'
                                         console.log data
                 else
                         console.error 'TODO: magnetoscope create app'
+
+        getStats: (options, cb) =>
+                @Event.count options, cb
+
+        getLast: (options = {}, cb) =>
+                limit = parseInt options.limit || 10
+                limit = Math.min limit, 42
+                skip = parseInt options.skip || 0
+                order = 'date DESC'
+                wh = {}
+                if options.type
+                        wh['type'] = options.type
+
+                opts = { where: wh, limit: limit, order: order, skip: skip }
+                console.log opts
+                @Event.all opts, cb
 
         setupRoutes: =>
                 base_path = @options.base_path
@@ -81,22 +104,20 @@ class Magnetoscope
                         res.sendfile pathname
 
                 @app.get "#{base_path}/last", (req, res, next) =>
-                        limit = parseInt req.query.limit || 10
-                        limit = Math.min limit, 50
-                        skip = parseInt req.query.skip || 0
-                        order = 'date ASC'
-                        wh = {}
-                        if req.query.type
-                                wh['type'] = req.query.type
-
-                        @Event.all { where: wh, limit: limit, order: order, skip: skip }, (err, data) ->
+                        options = req.query.data
+                        @getLast options, (err, data) ->
+                                data2 = []
+                                for d in data
+                                        data2.push d.date
+                                data = data2
                                 res.json
                                         err: err?
                                         count: data.length
                                         data: data
 
                 @app.get "#{base_path}/stats", (req, res, next) =>
-                        @Event.count {}, (err, data) ->
+                        options = {}
+                        @getStats options, (err, data) ->
                                 res.json
                                         err: err
                                         data: data
@@ -107,16 +128,18 @@ class Magnetoscope
                         try
                                 data = qs.unescape data
                         catch e
+                                console.log 'unescape', e
                         try
                                 data = JSON.parse data
                         catch e
-                        console.log data
+                                console.log 'parse', e
 
                         event =
                                 data: data
                                 date: Date.now() / 1000
                                 type: req.query.type
                                 tape: req.query.tape || 'default'
+                        console.log event
 
                         dbEntry = new @Event
                         dbEntry.type = event.type

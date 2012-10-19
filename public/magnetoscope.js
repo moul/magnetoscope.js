@@ -19,39 +19,50 @@
 
         this.on_newEvent = __bind(this.on_newEvent, this);
 
+        this.on_unknownEvent = __bind(this.on_unknownEvent, this);
+
         this.onMagnetoscopeSetup = __bind(this.onMagnetoscopeSetup, this);
 
         this.options.debug = this.options.debug || false;
         this.options.verbose = this.options.verbose || false;
+        this.options.prefix = this.options.prefix || 'tatwlive::';
+        this.socket = this.options.socket || null;
         this.events = {};
-        this.socket = io.connect();
+        if (!this.socket) {
+          this.socket = io.connect();
+        }
         this.socket.on('connect', this.onSocketConnect);
         this.socket.on('magnetoscope::setup', this.onMagnetoscopeSetup);
       }
 
       Magnetoscope.prototype.onMagnetoscopeSetup = function(settings) {
-        var callback, eventName, eventPath, _ref, _results;
+        var callback, eventName, eventPath, _ref;
         this.settings = settings;
         if (this.options.debug) {
           console.debug('onMagnetsocopeSetup', this.settings);
         }
+        this.emit("setup::start");
         _ref = this.settings.events;
-        _results = [];
         for (eventName in _ref) {
           eventPath = _ref[eventName];
           callback = this["on_" + eventName];
           if (callback) {
             console.info("Registering magnetoscope event " + eventName + " with " + eventPath);
-            _results.push(this.socket.on(eventPath, callback));
+            this.socket.on(eventPath, callback);
           } else {
-            _results.push(console.warn("Cannot register magnetoscope event " + eventName));
+            console.warn("Cannot register magnetoscope event " + eventName + " with " + eventPath);
+            this.socket.on(eventPath, this.on_unknownEvent);
           }
         }
-        return _results;
+        return this.emit('setup::end');
+      };
+
+      Magnetoscope.prototype.on_unknownEvent = function(event) {
+        return console.log("UKNOWN EVENT", event);
       };
 
       Magnetoscope.prototype.on_newEvent = function(event) {
-        return this.emit(event.type, event);
+        return this.emit("event::" + event.type, event);
       };
 
       Magnetoscope.prototype.on_newEvents = function(events) {
@@ -85,20 +96,24 @@
       };
 
       Magnetoscope.prototype.emit = function(name) {
-        var args, handler, _i, _j, _len, _len1, _ref, _ref1;
+        var args, callback, callbacks, key, _i, _len, _ref;
+        name = "" + this.options.prefix + name;
         if (this.options.verbose) {
           console.info("Emitting magnetoscope event " + name);
         }
         args = [].slice.call(arguments, 1);
-        _ref = this.events[name];
-        for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-          handler = _ref[_i];
-          handler.apply(this, args);
-        }
-        _ref1 = this.events['any'];
-        for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
-          handler = _ref1[_j];
-          handler.apply(this, args);
+        _ref = this.events;
+        for (key in _ref) {
+          callbacks = _ref[key];
+          if (name.match(key)) {
+            if (this.options.debug) {
+              console.log("" + callbacks.length + " callback(s) with name `" + key + "` match `" + name + "`");
+            }
+            for (_i = 0, _len = callbacks.length; _i < _len; _i++) {
+              callback = callbacks[_i];
+              callback.apply(this, args);
+            }
+          }
         }
         return true;
       };
