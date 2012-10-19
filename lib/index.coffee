@@ -56,26 +56,36 @@ class Magnetoscope
                         @io.sockets.on 'connection', (socket) =>
                                 console.log 'NEW SOCKET'
                                 socket.emit 'magnetoscope::setup', @options.clientSettings
+
                                 socket.on @options.events['getLast'], (options = {}) =>
                                         @getLast options, (err, events) =>
                                                 for event in events.reverse()
                                                         socket.emit @options.events['newEvent'], event
-                                                socket.emit @options.events['setLast'],
-                                                        err: err
-                                                        data: data
-                                socket.on @options.events['getStats'], (data) =>
-                                        options = {}
-                                        @getStats options, (err, data) =>
-                                                socket.emit @options.events['setStats'],
-                                                        err: err
-                                                        data: data
+                                                #socket.emit @options.events['setLast'], {}
+
+                                socket.on @options.events['getStats'], (options = {}) =>
+                                        @getCount {type: 'tweet'}, (err, tweets) =>
+                                                @getCount {type: 'artist-change'}, (err, artistchanges) =>
+                                                        data =
+                                                                tweets: tweets
+                                                                artistchanges: artistchanges
+                                                                clients: @io.sockets.clients().length
+                                                                admins: -1
+                                                        socket.emit @options.events['setStats'],
+                                                                err: err
+                                                                data: data
+
                                 socket.on @options.events['push'], (data) =>
                                         console.log 'on PUSH'
                                         console.log data
                 else
                         console.error 'TODO: magnetoscope create app'
 
+        getCount: (options, cb) =>
+                @Event.count options, cb
+
         getStats: (options, cb) =>
+                # TODO: get global stats
                 @Event.count options, cb
 
         getLast: (options = {}, cb) =>
@@ -106,10 +116,6 @@ class Magnetoscope
                 @app.get "#{base_path}/last", (req, res, next) =>
                         options = req.query.data
                         @getLast options, (err, data) ->
-                                data2 = []
-                                for d in data
-                                        data2.push d.date
-                                data = data2
                                 res.json
                                         err: err?
                                         count: data.length
