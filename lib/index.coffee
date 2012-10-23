@@ -153,7 +153,7 @@ class Magnetoscope
                         dbEntry.date = event.date || Date.now()
                         dbEntry.duration = event.duration || 0
                         dbEntry.tape = event.tape
-                        dbEntry.save()
+                        do dbEntry.save
 
                         @io.sockets.emit @options.events['newEvent'], event
                         res.json { status: 'ok' }
