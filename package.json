@@ -1,0 +1,28 @@
+{
+  "name": "magnetoscope",
+  "version": "0.0.1",
+  "description": "Browser event record & replay library",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "jugglingdb": "~0.1.24-pre"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/moul/magnetoscope"
+  },
+  "keywords": [
+    "magnetoscope",
+    "tape",
+    "record",
+    "replay",
+    "event",
+    "socket.io",
+    "express",
+    "tapas"
+  ],
+  "author": "Manfred Touron <m@42.am>",
+  "license": "MIT"
+}
