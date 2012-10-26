@@ -14,17 +14,17 @@ class Magnetoscope
                 @app = @options.app || null
                 @io = @options.io || null
                 @schema = @options.schema || null
-                @options.prefix = @options.prefix || 'magnetoscope::'
-                @options.events = @options.events || {}
+                @options.prefix ?= 'magnetoscope::'
+                @options.events ?= {}
                 for eventName in ['newEvent', 'newEvents', 'getLast', 'setLast', 'getStats', 'setStats', 'push']
                         @options.events[eventName] = "#{@options.prefix}#{eventName}"
-                @options.port = @options.port || null
-                @options.base_path = @options.base_path || '/magnetoscope'
+                @options.port ?= null
+                @options.base_path ?= '/magnetoscope'
                 @options.latency = 3000 #ms
-                @options.clientSettings = @options.clientSettings || {}
+                @options.clientSettings ?= {}
                 @options.clientSettings.events = @options.events
-                @options.clientSettings.serverTime = @options.clientSettings.serverTime || (Date.now() / 1000)
-                @options.dbSchema = @options.dbSchema || { memory: {} }
+                @options.clientSettings.serverTime ?= (Date.now() / 1000)
+                @options.dbSchema ?= { memory: {} }
                 #{ sqlite3: { database: ':memory:' } }
                 #{ mongodb: { url: 'mongodb://user:pass@localhost:27017/magnetoscope'} }
                 #{ redis2: { } }
@@ -36,11 +36,19 @@ class Magnetoscope
                                 console.log "Creating Schema `#{key}`"
                                 @schema = new Schema key, value
                                 @Event = @schema.define 'Event',
-                                        type: { type: String, length: 255 }
-                                        data: { type: Schema.Text }
-                                        date: { type: Date, default: Date.now }
-                                        duration: { type: Number, default: 0 }
-                                        tape: { type: String }
+                                        type:
+                                                type: String
+                                                length: 255
+                                        data:
+                                                type: Schema.Text
+                                        date:
+                                                type: Date
+                                                default: Date.now
+                                        duration:
+                                                type: Number
+                                                default: 0
+                                        tape:
+                                                type: String
                                 #do @schema.automagirate
                                 break
                 if @app

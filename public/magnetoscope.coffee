@@ -3,9 +3,9 @@
 
         class Magnetoscope
                 constructor: (@options = {}) ->
-                        @options.debug = @options.debug || false
-                        @options.verbose = @options.verbose || false
-                        @options.prefix = @options.prefix || 'tatwlive::'
+                        @options.debug ?= false
+                        @options.verbose ?= false
+                        @options.prefix ?= 'magnetoscope::'
                         @socket = @options.socket || null
                         @events = {}
 
