@@ -17,7 +17,7 @@
         onMagnetoscopeSetup: (@settings) =>
             if @options.debug
                 console.debug 'onMagnetsocopeSetup', @settings
-            @emit "setup::start"
+            @dispatch "setup::start"
             for eventName, eventPath of @settings.events
                 callback = @["on_#{eventName}"]
                 if callback
@@ -26,19 +26,18 @@
                 else
                     console.warn "Cannot register magnetoscope event #{eventName} with #{eventPath}"
                     @socket.on eventPath, @on_unknownEvent
-            @emit 'setup::end'
+            @dispatch 'setup::end'
 
         on_unknownEvent: (event) =>
             console.log "UKNOWN EVENT", event
 
         on_newEvent: (event) =>
-            @emit "event::#{event.type}", event
+            @dispatch "event::#{event.type}", event
 
         on_newEvents: (events) =>
             if @options.debug
                 console.debug 'newEvents', events
-            for event in events
-                @on_newEvent event
+            @on_newEvent event for event in events
 
         onSocketConnect: =>
             if @options.debug
@@ -52,10 +51,13 @@
             else
                 @events[name].push fn
 
-        emit: (name) =>
+        emit: (type, data = {}, fn = null) ->
+            @socket.emit "#{@options.prefix}add", { type: type, data: data }, fn
+
+        dispatch: (name) =>
             name = "#{@options.prefix}#{name}"
             if @options.verbose
-                console.info "Emitting magnetoscope event #{name}"
+                console.info "Dispatchting magnetoscope event #{name}"
             args = [].slice.call(arguments, 1)
             for key, callbacks of @events
                 if name.match key
