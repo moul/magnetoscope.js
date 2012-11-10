@@ -8,7 +8,8 @@ class Magnetoscope
         do @handleOptions
         do @initHandlers
         do @setupRoutes
-        return do @middleware
+        return @
+        #return do @middleware
 
     handleOptions: =>
         @app                                = @options.app || null
@@ -107,10 +108,13 @@ class Magnetoscope
         skip = parseInt options.skip || 0
         order = 'date DESC'
         wh = {}
+        if options.where
+            wh = options.where
         if options.type
             wh['type'] = options.type
 
         opts = { where: wh, limit: limit, order: order, skip: skip }
+        console.dir opts
         @logger.log 'info', opts
         @Event.all opts, cb
 
