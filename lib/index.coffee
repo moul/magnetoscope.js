@@ -11,29 +11,31 @@ class Magnetoscope
         return do @middleware
 
     handleOptions: =>
-        @app = @options.app || null
-        @io = @options.io || null
-        @schema = @options.schema || null
-        @options.prefix ?= 'magnetoscope::'
-        @options.events ?= {}
-        for eventName in ['newEvent', 'newEvents', 'getLast', 'setLast', 'getStats', 'setStats', 'push']
-            @options.events[eventName] = "#{@options.prefix}#{eventName}"
-        @options.port ?= null
-        @options.base_path ?= '/magnetoscope'
-        @options.latency = 3000 #ms
-        @options.clientSettings ?= {}
-        @options.clientSettings.events = @options.events
+        @app                                = @options.app || null
+        @io                                 = @options.io || null
+        @schema                             = @options.schema || null
+        @options.prefix                    ?= 'magnetoscope::'
+        @options.events                    ?= {}
+        @options.port                      ?= null
+        @options.base_path                 ?= '/magnetoscope'
+        @options.latency                    = 3000 #ms
+        @options.clientSettings            ?= {}
         @options.clientSettings.serverTime ?= (Date.now() / 1000)
-        @options.dbSchema ?= { memory: {} }
-        #{ sqlite3: { database: ':memory:' } }
-        #{ mongodb: { url: 'mongodb://user:pass@localhost:27017/magnetoscope'} }
-        #{ redis2: { } }
-        #{ mysql: { database: 'magnetoscope', username: 'user', password: 'secret' } }
+        @options.dbSchema                  ?= { memory: {} }
+        for eventName in ['newEvent', 'newEvents', 'getLast', 'setLast', 'getStats', 'setStats', 'push']
+            @options.events[eventName]      = "#{@options.prefix}#{eventName}"
+        @options.clientSettings.events      = @options.events
+
+        @log         = @options.log || {}
+        @log.info   ?= console.info
+        @log.warn   ?= console.warn
+        @log.log    ?= console.log
+        @log.error  ?= console.error
 
     initHandlers: =>
         if @options.dbSchema
             for key, value of @options.dbSchema
-                console.log "Creating Schema `#{key}`"
+                @log.info "Creating Schema `#{key}`"
                 @schema = new Schema key, value
                 @Event = @schema.define 'Event',
                     type:
@@ -60,9 +62,9 @@ class Magnetoscope
             @io.enable 'browser client gzip'
             #@io.set 'log level', 5
 
-            console.info 'create monitor'
+            @log.info 'create monitor'
             @io.sockets.on 'connection', (socket) =>
-                console.log 'NEW SOCKET'
+                @log.info 'new connection'
                 socket.emit 'magnetoscope::setup', @options.clientSettings
 
                 socket.on @options.events['getLast'], (options = {}) =>
@@ -105,7 +107,7 @@ class Magnetoscope
             wh['type'] = options.type
 
         opts = { where: wh, limit: limit, order: order, skip: skip }
-        console.log opts
+        @log.info opts
         @Event.all opts, cb
 
     push: (data, cb = null) =>
@@ -129,13 +131,13 @@ class Magnetoscope
     setupRoutes: =>
         base_path = @options.base_path
 
-        @app.get "#{base_path}/:file.js", (req, res, next) ->
+        @app.get "#{base_path}/:file.js", (req, res, next) =>
             file = req.params.file
             if file not in ['magnetoscope']
                 res.send 404, 'File not found'
                 return
             pathname = path.normalize "#{__dirname}/../public/#{file}.js"
-            console.log pathname
+            @log.info pathname
             res.sendfile pathname
 
         @app.get "#{base_path}/last", (req, res, next) =>
@@ -159,11 +161,11 @@ class Magnetoscope
             try
                 data = qs.unescape data
             catch e
-                console.log 'unescape', e
+                @log.info 'unescape', e
             try
                 data = JSON.parse data
             catch e
-                console.log 'parse', e
+                @log.info 'parse', e
 
             event =
                 obj: obj
@@ -176,7 +178,7 @@ class Magnetoscope
 
     middleware: =>
         return (req, res, next) ->
-            console.log 'test callback handler'
+            @log.info 'test callback handler'
             do next
 
     @create: (options) ->
