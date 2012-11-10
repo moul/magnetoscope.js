@@ -13,7 +13,11 @@
         this.options = options != null ? options : {};
         this.dispatch = __bind(this.dispatch, this);
 
+        this.emit = __bind(this.emit, this);
+
         this.on = __bind(this.on, this);
+
+        this.onSocketDisconnect = __bind(this.onSocketDisconnect, this);
 
         this.onSocketConnect = __bind(this.onSocketConnect, this);
 
@@ -75,12 +79,16 @@
           this.socket = io.connect();
         }
         this.socket.on('connect', this.onSocketConnect);
+        this.socket.on('disconnect', this.onSocketDisconnect);
         this.socket.on('magnetoscope::setup', this.onMagnetoscopeSetup);
+        this.registered = false;
+        this.connected = false;
       }
 
       Magnetoscope.prototype.onMagnetoscopeSetup = function(settings) {
         var callback, eventName, eventPath, _ref;
         this.settings = settings;
+        this.registered = true;
         if (this.options.debug) {
           this.options.log_debug('onMagnetsocopeSetup', this.settings);
         }
@@ -111,7 +119,7 @@
       Magnetoscope.prototype.on_newEvents = function(events) {
         var event, _i, _len, _results;
         if (this.options.debug) {
-          this.optoins.log_debug('newEvents', events);
+          this.options.log_debug('newEvents', events);
         }
         _results = [];
         for (_i = 0, _len = events.length; _i < _len; _i++) {
@@ -122,9 +130,23 @@
       };
 
       Magnetoscope.prototype.onSocketConnect = function() {
+        this.options.log_debug('AAAAAAAAAAA');
         if (this.options.debug) {
-          return this.options.log_debug('onSocketConnect');
+          this.options.log_debug('onSocketConnect');
         }
+        this.connected = true;
+        if (!this.registered) {
+          this.options.log_debug('socketEmit');
+          this.socket.emit("" + this.options.prefix + "powerOn");
+        }
+        return this.options.log_debug('BBBBBBBBBB');
+      };
+
+      Magnetoscope.prototype.onSocketDisconnect = function() {
+        if (this.options.debug) {
+          this.options.log_debug('onSocketDisconnect');
+        }
+        return this.connected = false;
       };
 
       Magnetoscope.prototype.on = function(name, fn) {

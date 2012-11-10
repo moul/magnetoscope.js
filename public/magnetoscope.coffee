@@ -17,9 +17,13 @@
             if not @socket
                 @socket = do io.connect
             @socket.on 'connect', @onSocketConnect
+            @socket.on 'disconnect', @onSocketDisconnect
             @socket.on 'magnetoscope::setup', @onMagnetoscopeSetup
+            @registered = false
+            @connected = false
 
         onMagnetoscopeSetup: (@settings) =>
+            @registered = true
             if @options.debug
                 @options.log_debug 'onMagnetsocopeSetup', @settings
             @dispatch "setup::start"
@@ -41,12 +45,23 @@
 
         on_newEvents: (events) =>
             if @options.debug
-                @optoins.log_debug 'newEvents', events
+                @options.log_debug 'newEvents', events
             @on_newEvent event for event in events
 
         onSocketConnect: =>
             if @options.debug
                 @options.log_debug 'onSocketConnect'
+            @connected = true
+            if not @registered
+                @options.log_debug 'socketEmit'
+                @socket.emit "#{@options.prefix}powerOn"
+            else
+                @options.log_debug 'reconnect'
+
+        onSocketDisconnect: =>
+            if @options.debug
+                @options.log_debug 'onSocketDisconnect'
+            @connected = false
 
         on: (name, fn) =>
             @options.log_info "Registering magnetoscope callback for '#{name}'" if @options.verbose
@@ -55,7 +70,7 @@
             else
                 @events[name].push fn
 
-        emit: (data = {}, fn = null) ->
+        emit: (data = {}, fn = null) =>
             data.obj       ?= {}
             data.date      ?= Date.now()
             data.type      ?= 'message'

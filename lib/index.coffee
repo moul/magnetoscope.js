@@ -22,12 +22,12 @@ class Magnetoscope
         @options.clientSettings            ?= {}
         @options.clientSettings.serverTime ?= (Date.now() / 1000)
         @options.dbSchema                  ?= { memory: {} }
-        for eventName in ['newEvent', 'newEvents', 'getLast', 'setLast', 'getStats', 'setStats', 'push']
+        for eventName in ['newEvent', 'newEvents', 'getLast', 'setLast', 'getStats', 'setStats', 'push', 'powerOn']
             @options.events[eventName]      = "#{@options.prefix}#{eventName}"
         @options.clientSettings.events      = @options.events
 
         @logger                             = @options.logger || {}
-        @logger.log                        ?= (type, args...) -> console[type] args...
+        @logger.log                        ?= (type, args...) -> console[type].apply console, args...
 
     initHandlers: =>
         if @options.dbSchema
@@ -62,7 +62,10 @@ class Magnetoscope
             @logger.log 'info', 'create monitor'
             @io.sockets.on 'connection', (socket) =>
                 @logger.log 'info', 'new connection'
-                socket.emit 'magnetoscope::setup', @options.clientSettings
+
+                socket.on @options.events['powerOn'], =>
+                    @logger.log 'info', 'powerOn'
+                    socket.emit 'magnetoscope::setup', @options.clientSettings
 
                 socket.on @options.events['getLast'], (options = {}) =>
                     @getLast options, (err, events) =>
@@ -84,6 +87,10 @@ class Magnetoscope
 
                 socket.on @options.events['push'], (data) =>
                     @push data
+
+                socket.on 'disconnect', =>
+                    console.log 'DISCONNECT'
+                    delete @io.sockets.sockets[socket.id]
         else
             console.error 'TODO: magnetoscope create app'
 
