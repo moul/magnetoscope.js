@@ -39,7 +39,7 @@ class Magnetoscope
                     type:
                         type: String
                         length: 255
-                    data:
+                    obj:
                         type: Schema.Text
                     date:
                         type: Date
@@ -58,7 +58,7 @@ class Magnetoscope
             @io.enable 'browser client minification'
             @io.enable 'browser client etag'
             @io.enable 'browser client gzip'
-            @io.set 'log level', 5
+            #@io.set 'log level', 5
 
             console.info 'create monitor'
             @io.sockets.on 'connection', (socket) =>
@@ -84,8 +84,7 @@ class Magnetoscope
                                 data: data
 
                 socket.on @options.events['push'], (data) =>
-                    console.log 'on PUSH'
-                    console.log data
+                    @push data
         else
             console.error 'TODO: magnetoscope create app'
 
@@ -108,6 +107,24 @@ class Magnetoscope
         opts = { where: wh, limit: limit, order: order, skip: skip }
         console.log opts
         @Event.all opts, cb
+
+    push: (data, cb = null) =>
+        data.type     ?= 'message'
+        data.obj      ?= {}
+        data.date     ?= Date.now()
+        data.duration ?= 0
+        data.tape     ?= 'default'
+
+        dbEvent = new @Event
+        dbEvent.type     = data.type
+        dbEvent.obj      = data.obj
+        dbEvent.date     = data.date
+        dbEvent.duration = data.duration
+        dbEvent.tape     = data.tape
+        do dbEvent.save
+
+        @io.sockets.emit @options.events['newEvent'], data
+        do cb if cb
 
     setupRoutes: =>
         base_path = @options.base_path
@@ -149,22 +166,13 @@ class Magnetoscope
                 console.log 'parse', e
 
             event =
-                data: data
+                obj: obj
                 date: Date.now() / 1000
                 type: req.query.type
                 tape: req.query.tape || 'default'
-            console.log event
+                duration: req.query.duration || 0
 
-            dbEntry = new @Event
-            dbEntry.type = event.type
-            dbEntry.data = event.data
-            dbEntry.date = event.date || Date.now()
-            dbEntry.duration = event.duration || 0
-            dbEntry.tape = event.tape
-            do dbEntry.save
-
-            @io.sockets.emit @options.events['newEvent'], event
-            res.json { status: 'ok' }
+            @push event, -> res.json { status: 'ok' }
 
     middleware: =>
         return (req, res, next) ->

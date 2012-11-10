@@ -51,8 +51,14 @@
             else
                 @events[name].push fn
 
-        emit: (type, data = {}, fn = null) ->
-            @socket.emit "#{@options.prefix}add", { type: type, data: data }, fn
+        emit: (data = {}, fn = null) ->
+            data.obj      ?= {}
+            data.date     ?= Date.now()
+            data.type     ?= 'message'
+            data.duration ?= 0
+            data.tape     ?= @options.tape
+
+            @socket.emit "#{@options.prefix}push", data, fn
 
         dispatch: (name) =>
             name = "#{@options.prefix}#{name}"
