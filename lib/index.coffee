@@ -23,7 +23,7 @@ class Magnetoscope
         @options.clientSettings            ?= {}
         @options.clientSettings.serverTime ?= (Date.now() / 1000)
         @options.dbSchema                  ?= { memory: {} }
-        for eventName in ['newEvent', 'newEvents', 'getLast', 'setLast', 'getStats', 'setStats', 'push', 'powerOn']
+        for eventName in ['newEvent', 'newEvents', 'getLast', 'setLast', 'getStats', 'setStats', 'push', 'powerOn', 'reconnect']
             @options.events[eventName]      = "#{@options.prefix}#{eventName}"
         @options.clientSettings.events      = @options.events
 
@@ -69,6 +69,12 @@ class Magnetoscope
                     socket.tape = tape
                     @logger.log 'info', "powerOn (#{tape})"
                     socket.emit 'magnetoscope::setup', @options.clientSettings
+
+                socket.on @options.events['reconnect'], (tape) =>
+                    socket.join("tape-#{tape}")
+                    socket.tape = tape
+                    @logger.log 'info', "reconnect (#{tape})"
+                    #socket.emit 'magnetoscope::setup', @options.clientSettings
 
                 socket.on @options.events['getLast'], (options = {}) =>
                     @getLast options, (err, events) =>
@@ -134,11 +140,9 @@ class Magnetoscope
         dbEvent.duration = data.duration
         dbEvent.tape     = data.tape
         if data.recording
-            console.log 'RECORDING!'
+            #console.log 'RECORDING!'
             delete data.recording
             do dbEvent.save
-        else
-            console.log 'not recording'
 
         @io.sockets.in("tape-#{data.tape}").emit @options.events['newEvent'], data
         do cb if cb

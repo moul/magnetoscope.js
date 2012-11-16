@@ -60,6 +60,7 @@
                 @socket.emit "#{@options.prefix}powerOn", @options.tape
             else
                 @options.log.debug 'reconnect'
+                @socket.emit "#{@options.prefix}reconnect", @options.tape
 
         onSocketDisconnect: =>
             if @options.debug

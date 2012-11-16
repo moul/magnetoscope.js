@@ -140,7 +140,8 @@
           this.options.log.debug('socketEmit');
           return this.socket.emit("" + this.options.prefix + "powerOn", this.options.tape);
         } else {
-          return this.options.log.debug('reconnect');
+          this.options.log.debug('reconnect');
+          return this.socket.emit("" + this.options.prefix + "reconnect", this.options.tape);
         }
       };
 
