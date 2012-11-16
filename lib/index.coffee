@@ -62,10 +62,12 @@ class Magnetoscope
 
             @logger.log 'info', 'create monitor'
             @io.sockets.on 'connection', (socket) =>
-                @logger.log 'info', 'new connection'
+                #@logger.log 'info', 'new connection'
 
-                socket.on @options.events['powerOn'], =>
-                    @logger.log 'info', 'powerOn'
+                socket.on @options.events['powerOn'], (tape) =>
+                    socket.join("tape-#{tape}")
+                    socket.tape = tape
+                    @logger.log 'info', "powerOn (#{tape})"
                     socket.emit 'magnetoscope::setup', @options.clientSettings
 
                 socket.on @options.events['getLast'], (options = {}) =>
@@ -86,8 +88,8 @@ class Magnetoscope
                                 err: err
                                 data: data
 
-                socket.on @options.events['push'], (data) =>
-                    @push data
+                #socket.on @options.events['push'], (data) =>
+                #    @push data
 
                 socket.on 'disconnect', =>
                     console.log 'DISCONNECT'
@@ -104,7 +106,7 @@ class Magnetoscope
 
     getLast: (options = {}, cb) =>
         limit = parseInt options.limit || 10
-        limit = Math.min limit, 42
+        limit = Math.min limit, 100
         skip = parseInt options.skip || 0
         order = 'date DESC'
         wh = {}
@@ -114,16 +116,16 @@ class Magnetoscope
             wh['type'] = options.type
 
         opts = { where: wh, limit: limit, order: order, skip: skip }
-        console.dir opts
-        @logger.log 'info', opts
+        #console.dir opts
+        #@logger.log 'info', opts
         @Event.all opts, cb
 
     push: (data, cb = null) =>
-        data.type     ?= 'message'
-        data.obj      ?= {}
-        data.date     ?= Date.now()
-        data.duration ?= 0
-        data.tape     ?= 'default'
+        data.type       ?= 'message'
+        data.obj        ?= {}
+        data.date       ?= Date.now()
+        data.duration   ?= 0
+        data.tape       ?= 'default'
 
         dbEvent = new @Event
         dbEvent.type     = data.type
@@ -131,9 +133,14 @@ class Magnetoscope
         dbEvent.date     = data.date
         dbEvent.duration = data.duration
         dbEvent.tape     = data.tape
-        do dbEvent.save
+        if data.recording
+            console.log 'RECORDING!'
+            delete data.recording
+            do dbEvent.save
+        else
+            console.log 'not recording'
 
-        @io.sockets.emit @options.events['newEvent'], data
+        @io.sockets.in("tape-#{data.tape}").emit @options.events['newEvent'], data
         do cb if cb
 
     setupRoutes: =>

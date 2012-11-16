@@ -3,16 +3,19 @@
 
     class Magnetoscope
         constructor: (@options   = {}) ->
+            @options.tape       ?= 'junk'
             @options.debug      ?= false
             @options.verbose    ?= false
             @options.prefix     ?= 'magnetoscope::'
-            @options.log        ?= (args...) -> console.log.call   console, args...
-            @options.log_debug  ?= (args...) -> console.debug.call console, args...
-            @options.log_info   ?= (args...) -> console.info.call  console, args...
-            @options.log_warn   ?= (args...) -> console.warn.call  console, args...
-            @options.log_error  ?= (args...) -> console.error.call console, args...
             @socket              = @options.socket || null
             @events              = {}
+            @options.log        ?=
+                log:   (args...) -> console.log.call     console, args...
+                warn:  (args...) -> console.warn.call    console, args...
+                debug: (args...) -> console.debug.call   console, args...
+                error: (args...) -> console.error.call   console, args...
+                info:  (args...) -> console.info.call    console, args...
+                dir:   (args...) -> console.dir.call     console, args...
 
             if not @socket
                 @socket = do io.connect
@@ -25,46 +28,46 @@
         onMagnetoscopeSetup: (@settings) =>
             @registered = true
             if @options.debug
-                @options.log_debug 'onMagnetsocopeSetup', @settings
+                @options.log.debug 'onMagnetsocopeSetup', @settings
             @dispatch "setup::start"
             for eventName, eventPath of @settings.events
                 callback = @["on_#{eventName}"]
                 if callback
-                    @options.log_info "Registering magnetoscope event #{eventName} with #{eventPath}"
+                    @options.log.info "Registering magnetoscope event #{eventName} with #{eventPath}"
                     @socket.on eventPath, callback
                 else
-                    @options.log_warn "Cannot register magnetoscope event #{eventName} with #{eventPath}"
+                    @options.log.warn "Cannot register magnetoscope event #{eventName} with #{eventPath}"
                     @socket.on eventPath, @on_unknownEvent
             @dispatch 'setup::end'
 
         on_unknownEvent: (event) =>
-            @options.log "UKNOWN EVENT", event
+            @options.log.warn "UKNOWN EVENT", event
 
         on_newEvent: (event) =>
             @dispatch "event::#{event.type}", event
 
         on_newEvents: (events) =>
             if @options.debug
-                @options.log_debug 'newEvents', events
+                @options.log.debug 'newEvents', events
             @on_newEvent event for event in events
 
         onSocketConnect: =>
             if @options.debug
-                @options.log_debug 'onSocketConnect'
+                @options.log.debug 'onSocketConnect'
             @connected = true
             if not @registered
-                @options.log_debug 'socketEmit'
-                @socket.emit "#{@options.prefix}powerOn"
+                @options.log.debug 'socketEmit'
+                @socket.emit "#{@options.prefix}powerOn", @options.tape
             else
-                @options.log_debug 'reconnect'
+                @options.log.debug 'reconnect'
 
         onSocketDisconnect: =>
             if @options.debug
-                @options.log_debug 'onSocketDisconnect'
+                @options.log.debug 'onSocketDisconnect'
             @connected = false
 
         on: (name, fn) =>
-            @options.log_info "Registering magnetoscope callback for '#{name}'" if @options.verbose
+            @options.log.info "Registering magnetoscope callback for '#{name}'" if @options.verbose
             if not @events[name]?
                 @events[name] = [fn]
             else
@@ -82,12 +85,12 @@
         dispatch: (name) =>
             name = "#{@options.prefix}#{name}"
             if @options.verbose
-                @options.log_info "Dispatchting magnetoscope event #{name}"
+                @options.log.info "Dispatchting magnetoscope event #{name}"
             args = [].slice.call(arguments, 1)
             for key, callbacks of @events
                 if name.match key
                     if @options.debug
-                        @options.log "#{callbacks.length} callback(s) with name `#{key}` match `#{name}`"
+                        @options.log.info "#{callbacks.length} callback(s) with name `#{key}` match `#{name}`"
                     for callback in callbacks
                         callback.apply @, args
             return true

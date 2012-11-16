@@ -9,7 +9,7 @@
     Magnetoscope = (function() {
 
       function Magnetoscope(options) {
-        var _base, _base1, _base2, _base3, _base4, _base5, _base6, _base7, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
+        var _base, _base1, _base2, _base3, _base4, _ref, _ref1, _ref2, _ref3, _ref4;
         this.options = options != null ? options : {};
         this.dispatch = __bind(this.dispatch, this);
 
@@ -29,52 +29,54 @@
 
         this.onMagnetoscopeSetup = __bind(this.onMagnetoscopeSetup, this);
 
-        if ((_ref = (_base = this.options).debug) == null) {
-          _base.debug = false;
+        if ((_ref = (_base = this.options).tape) == null) {
+          _base.tape = 'junk';
         }
-        if ((_ref1 = (_base1 = this.options).verbose) == null) {
-          _base1.verbose = false;
+        if ((_ref1 = (_base1 = this.options).debug) == null) {
+          _base1.debug = false;
         }
-        if ((_ref2 = (_base2 = this.options).prefix) == null) {
-          _base2.prefix = 'magnetoscope::';
+        if ((_ref2 = (_base2 = this.options).verbose) == null) {
+          _base2.verbose = false;
         }
-        if ((_ref3 = (_base3 = this.options).log) == null) {
-          _base3.log = function() {
-            var args, _ref4;
-            args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-            return (_ref4 = console.log).call.apply(_ref4, [console].concat(__slice.call(args)));
-          };
-        }
-        if ((_ref4 = (_base4 = this.options).log_debug) == null) {
-          _base4.log_debug = function() {
-            var args, _ref5;
-            args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-            return (_ref5 = console.debug).call.apply(_ref5, [console].concat(__slice.call(args)));
-          };
-        }
-        if ((_ref5 = (_base5 = this.options).log_info) == null) {
-          _base5.log_info = function() {
-            var args, _ref6;
-            args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-            return (_ref6 = console.info).call.apply(_ref6, [console].concat(__slice.call(args)));
-          };
-        }
-        if ((_ref6 = (_base6 = this.options).log_warn) == null) {
-          _base6.log_warn = function() {
-            var args, _ref7;
-            args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-            return (_ref7 = console.warn).call.apply(_ref7, [console].concat(__slice.call(args)));
-          };
-        }
-        if ((_ref7 = (_base7 = this.options).log_error) == null) {
-          _base7.log_error = function() {
-            var args, _ref8;
-            args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
-            return (_ref8 = console.error).call.apply(_ref8, [console].concat(__slice.call(args)));
-          };
+        if ((_ref3 = (_base3 = this.options).prefix) == null) {
+          _base3.prefix = 'magnetoscope::';
         }
         this.socket = this.options.socket || null;
         this.events = {};
+        if ((_ref4 = (_base4 = this.options).log) == null) {
+          _base4.log = {
+            log: function() {
+              var args, _ref5;
+              args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+              return (_ref5 = console.log).call.apply(_ref5, [console].concat(__slice.call(args)));
+            },
+            warn: function() {
+              var args, _ref5;
+              args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+              return (_ref5 = console.warn).call.apply(_ref5, [console].concat(__slice.call(args)));
+            },
+            debug: function() {
+              var args, _ref5;
+              args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+              return (_ref5 = console.debug).call.apply(_ref5, [console].concat(__slice.call(args)));
+            },
+            error: function() {
+              var args, _ref5;
+              args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+              return (_ref5 = console.error).call.apply(_ref5, [console].concat(__slice.call(args)));
+            },
+            info: function() {
+              var args, _ref5;
+              args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+              return (_ref5 = console.info).call.apply(_ref5, [console].concat(__slice.call(args)));
+            },
+            dir: function() {
+              var args, _ref5;
+              args = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+              return (_ref5 = console.dir).call.apply(_ref5, [console].concat(__slice.call(args)));
+            }
+          };
+        }
         if (!this.socket) {
           this.socket = io.connect();
         }
@@ -90,7 +92,7 @@
         this.settings = settings;
         this.registered = true;
         if (this.options.debug) {
-          this.options.log_debug('onMagnetsocopeSetup', this.settings);
+          this.options.log.debug('onMagnetsocopeSetup', this.settings);
         }
         this.dispatch("setup::start");
         _ref = this.settings.events;
@@ -98,10 +100,10 @@
           eventPath = _ref[eventName];
           callback = this["on_" + eventName];
           if (callback) {
-            this.options.log_info("Registering magnetoscope event " + eventName + " with " + eventPath);
+            this.options.log.info("Registering magnetoscope event " + eventName + " with " + eventPath);
             this.socket.on(eventPath, callback);
           } else {
-            this.options.log_warn("Cannot register magnetoscope event " + eventName + " with " + eventPath);
+            this.options.log.warn("Cannot register magnetoscope event " + eventName + " with " + eventPath);
             this.socket.on(eventPath, this.on_unknownEvent);
           }
         }
@@ -109,7 +111,7 @@
       };
 
       Magnetoscope.prototype.on_unknownEvent = function(event) {
-        return this.options.log("UKNOWN EVENT", event);
+        return this.options.log.warn("UKNOWN EVENT", event);
       };
 
       Magnetoscope.prototype.on_newEvent = function(event) {
@@ -119,7 +121,7 @@
       Magnetoscope.prototype.on_newEvents = function(events) {
         var event, _i, _len, _results;
         if (this.options.debug) {
-          this.options.log_debug('newEvents', events);
+          this.options.log.debug('newEvents', events);
         }
         _results = [];
         for (_i = 0, _len = events.length; _i < _len; _i++) {
@@ -130,28 +132,28 @@
       };
 
       Magnetoscope.prototype.onSocketConnect = function() {
-        this.options.log_debug('AAAAAAAAAAA');
         if (this.options.debug) {
-          this.options.log_debug('onSocketConnect');
+          this.options.log.debug('onSocketConnect');
         }
         this.connected = true;
         if (!this.registered) {
-          this.options.log_debug('socketEmit');
-          this.socket.emit("" + this.options.prefix + "powerOn");
+          this.options.log.debug('socketEmit');
+          return this.socket.emit("" + this.options.prefix + "powerOn", this.options.tape);
+        } else {
+          return this.options.log.debug('reconnect');
         }
-        return this.options.log_debug('BBBBBBBBBB');
       };
 
       Magnetoscope.prototype.onSocketDisconnect = function() {
         if (this.options.debug) {
-          this.options.log_debug('onSocketDisconnect');
+          this.options.log.debug('onSocketDisconnect');
         }
         return this.connected = false;
       };
 
       Magnetoscope.prototype.on = function(name, fn) {
         if (this.options.verbose) {
-          this.options.log_info("Registering magnetoscope callback for '" + name + "'");
+          this.options.log.info("Registering magnetoscope callback for '" + name + "'");
         }
         if (!(this.events[name] != null)) {
           return this.events[name] = [fn];
@@ -190,7 +192,7 @@
         var args, callback, callbacks, key, _i, _len, _ref;
         name = "" + this.options.prefix + name;
         if (this.options.verbose) {
-          this.options.log_info("Dispatchting magnetoscope event " + name);
+          this.options.log.info("Dispatchting magnetoscope event " + name);
         }
         args = [].slice.call(arguments, 1);
         _ref = this.events;
@@ -198,7 +200,7 @@
           callbacks = _ref[key];
           if (name.match(key)) {
             if (this.options.debug) {
-              this.options.log("" + callbacks.length + " callback(s) with name `" + key + "` match `" + name + "`");
+              this.options.log.info("" + callbacks.length + " callback(s) with name `" + key + "` match `" + name + "`");
             }
             for (_i = 0, _len = callbacks.length; _i < _len; _i++) {
               callback = callbacks[_i];
