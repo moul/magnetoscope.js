@@ -28,7 +28,7 @@ class Magnetoscope
         @options.clientSettings.events      = @options.events
 
         @logger                             = @options.logger || {}
-        @logger.log                        ?= (type, args...) -> console[type].apply console, args...
+        @logger.log                        ?= (type, args...) -> console[type] console, args...
 
     initHandlers: =>
         if @options.dbSchema
