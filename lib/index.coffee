@@ -12,23 +12,23 @@ class Magnetoscope
     #return do @middleware
 
   handleOptions: =>
-    @app                = @options.app || null
-    @io                 = @options.io || null
-    @schema               = @options.schema || null
-    @options.prefix          ?= 'magnetoscope::'
-    @options.events          ?= {}
-    @options.port            ?= null
-    @options.base_path         ?= '/magnetoscope'
-    @options.latency          = 3000 #ms
-    @options.clientSettings      ?= {}
+    @app                                = @options.app    || null
+    @io                                 = @options.io     || null
+    @schema                             = @options.schema || null
+    @options.prefix                    ?= 'magnetoscope::'
+    @options.events                    ?= {}
+    @options.port                      ?= null
+    @options.base_path                 ?= '/magnetoscope'
+    @options.latency                    = 3000 #ms
+    @options.clientSettings            ?= {}
     @options.clientSettings.serverTime ?= (Date.now() / 1000)
-    @options.dbSchema          ?= { memory: {} }
+    @options.dbSchema                  ?= { memory: {} }
     for eventName in ['newEvent', 'newEvents', 'getLast', 'setLast', 'getStats', 'setStats', 'push', 'powerOn', 'reconnect']
-      @options.events[eventName]    = "#{@options.prefix}#{eventName}"
-    @options.clientSettings.events    = @options.events
+      @options.events[eventName]        = "#{@options.prefix}#{eventName}"
+    @options.clientSettings.events      = @options.events
 
-    @logger               = @options.logger || {}
-    @logger.log            ?= (type, args...) -> console[type] console, args...
+    @logger                             = @options.logger || {}
+    @logger.log                        ?= (type, args...) -> console[type] console, args...
 
   initHandlers: =>
     if @options.dbSchema
@@ -58,11 +58,11 @@ class Magnetoscope
       @io.enable 'browser client minification'
       @io.enable 'browser client etag'
       @io.enable 'browser client gzip'
-      #@io.set 'log level', 5
+      @io.set    'log level', 5
 
       @logger.log 'info', 'create monitor'
       @io.sockets.on 'connection', (socket) =>
-        #@logger.log 'info', 'new connection'
+        @logger.log 'info', 'new connection'
 
         socket.on @options.events['powerOn'], (tape) =>
           socket.join("tape-#{tape}")
@@ -86,13 +86,13 @@ class Magnetoscope
           @getCount {type: 'tweet'}, (err, tweets) =>
             @getCount {type: 'artist-change'}, (err, artistchanges) =>
               data =
-                tweets: tweets
+                tweets:        tweets
                 artistchanges: artistchanges
-                clients: @io.sockets.clients().length
-                admins: -1
+                clients:       @io.sockets.clients().length
+                admins:        -1
               socket.emit @options.events['setStats'],
-                err: err
-                data: data
+                err:           err
+                data:          data
 
         #socket.on @options.events['push'], (data) =>
         #  @push data
@@ -111,15 +111,11 @@ class Magnetoscope
     @Event.count options, cb
 
   getLast: (options = {}, cb) =>
-    limit = parseInt options.limit || 10
-    limit = Math.min limit, 100
-    skip = parseInt options.skip || 0
-    order = 'date DESC'
-    wh = {}
-    if options.where
-      wh = options.where
-    if options.type
-      wh['type'] = options.type
+    limit      = Math.min(100, parseInt options.limit || 10)
+    skip       = parseInt options.skip || 0
+    order      = 'date DESC'
+    wh         = options.where || {}
+    wh['type'] = options.type if options.type
 
     opts = { where: wh, limit: limit, order: order, skip: skip }
     #console.dir opts
@@ -127,18 +123,18 @@ class Magnetoscope
     @Event.all opts, cb
 
   push: (data, cb = null) =>
-    data.type     ?= 'message'
-    data.obj    ?= {}
-    data.date     ?= Date.now()
-    data.duration   ?= 0
-    data.tape     ?= 'default'
+    data.type      ?= 'message'
+    data.obj       ?= {}
+    data.date      ?= Date.now()
+    data.duration  ?= 0
+    data.tape      ?= 'default'
 
     dbEvent = new @Event
-    dbEvent.type   = data.type
-    dbEvent.obj    = data.obj
-    dbEvent.date   = data.date
+    dbEvent.type     = data.type
+    dbEvent.obj      = data.obj
+    dbEvent.date     = data.date
     dbEvent.duration = data.duration
-    dbEvent.tape   = data.tape
+    dbEvent.tape     = data.tape
     if data.recording
       #console.log 'RECORDING!'
       delete data.recording
@@ -163,15 +159,15 @@ class Magnetoscope
       options = req.query.data
       @getLast options, (err, data) ->
         res.json
-          err: err?
+          err:   err?
           count: data.length
-          data: data
+          data:  data
 
     @app.get "#{base_path}/stats", (req, res, next) =>
       options = {}
       @getStats options, (err, data) ->
         res.json
-          err: err
+          err:  err
           data: data
 
     # TODO: find good name
@@ -187,11 +183,11 @@ class Magnetoscope
         @logger.log 'info', 'parse', e
 
       event =
-        obj: obj
-        date: Date.now() / 1000
-        type: req.query.type
-        tape: req.query.tape || 'default'
-        duration: req.query.duration || 0
+        obj:      obj
+        date:     Date.now() / 1000
+        type:     req.query.type
+        tape:     req.query.tape      || 'default'
+        duration: req.query.duration  || 0
 
       @push event, -> res.json { status: 'ok' }
 
